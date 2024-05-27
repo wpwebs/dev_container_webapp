@@ -1,9 +1,46 @@
 #!/bin/bash
 
+# Define the project name
+project_name=FastAPI
+
+# Function to print usage
+print_usage() {
+  echo "Usage: $0 [environment]"
+  echo "environment: development | dev | production | final"
+  exit 1
+}
+
+# Set default environment if not provided
+environment=${1:-development}
+target=$environment
+
+# Validate the environment argument
+if [[ "$environment" != "development" && "$environment" != "dev" && "$environment" != "production" ]]; then
+  echo "Error: Invalid environment '$environment'."
+  print_usage
+fi
+
+if [[ "$environment" == "dev" ]]; then
+  target=development
+fi
+
+if [[ "$environment" == "production" ]]; then
+  target=final
+fi
+
+# Use sed command searches for the "name" key and replaces its value with the project_name
+sed -i.bak -E "s/\"name\": \"[^\"]+\"/\"name\": \"$project_name\"/" .devcontainer/devcontainer.json
+rm .devcontainer/devcontainer.json.bak
+
 # Define the project name and image tag
-project=fastapi
+# Convert to lowercase
+project=$(echo "$project_name" | tr '[:upper:]' '[:lower:]')
+# Replace spaces with underscores
+project="${project// /_}"
+
 image_tag="$project-image"
 workspace_folder="/code"
+
 # Define the Dockerfile and context directory
 dockerfile_path=".devcontainer/Dockerfile"
 context_dir="."
@@ -17,7 +54,7 @@ compute_hash() {
 current_hash=$(compute_hash)
 
 # Check if a hash file exists and read the previous hash
-hash_file=".docker_build_hash"
+hash_file=".dot_files/.docker_build_hash"
 if [ -f "$hash_file" ]; then
   previous_hash=$(cat "$hash_file")
 else
@@ -27,7 +64,7 @@ fi
 # Function to build the Docker image
 build_image() {
   echo "Building Docker image for the project..."
-  docker build -f "$dockerfile_path" -t "$image_tag" "$context_dir"
+  docker build --build-arg ENVIRONMENT=$environment --target $target -f "$dockerfile_path" -t "$image_tag" "$context_dir"
   if [ $? -ne 0 ]; then
     echo "Docker image build failed."
     exit 1
@@ -61,6 +98,10 @@ if [ $? -ne 0 ]; then
   echo "Failed to start the Docker container."
   exit 1
 fi
+
+# Clean up dangling images and stopped containers
+echo "Cleaning up unused Docker resources..."
+docker image prune -f
 
 # Retrieve the container ID
 HEX_CONFIG=$(printf {\"containerName\":\"/$project\"} | od -A n -t x1 | tr -d '[\n\t ]')
