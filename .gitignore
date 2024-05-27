@@ -2,6 +2,9 @@
 config.py
 .ssh/
 
+# Docker build hash file
+.docker_build_hash
+
 # response when initial project on GitHub
 *response.json
 
