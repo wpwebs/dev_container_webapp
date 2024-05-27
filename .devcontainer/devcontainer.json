@@ -7,7 +7,7 @@
     "workspaceFolder": "/code",
     "customizations": {
         "vscode": {
-            "settings": { 
+            "settings": {
                 "remote.SSH.showLoginTerminal": true
             },
             "extensions": [
