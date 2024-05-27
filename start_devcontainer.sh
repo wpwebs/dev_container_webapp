@@ -1,33 +1,65 @@
 #!/bin/bash
 
-# Define the project name
+# Define the project name and image tag
 project=fastapi
+image_tag="$project-image"
+workspace_folder="/code"
+# Define the Dockerfile and context directory
+dockerfile_path=".devcontainer/Dockerfile"
+context_dir="."
 
-# Build the Docker image
-echo "Building Docker image for the project..."
-docker build -f .devcontainer/Dockerfile -t $project-image .
-if [ $? -ne 0 ]; then
+# Function to compute the hash of the Dockerfile and context directory
+compute_hash() {
+  find "$dockerfile_path" "$context_dir" -type f -print0 | sort -z | xargs -0 sha256sum | sha256sum | awk '{print $1}'
+}
+
+# Compute the current hash
+current_hash=$(compute_hash)
+
+# Check if a hash file exists and read the previous hash
+hash_file=".docker_build_hash"
+if [ -f "$hash_file" ]; then
+  previous_hash=$(cat "$hash_file")
+else
+  previous_hash=""
+fi
+
+# Function to build the Docker image
+build_image() {
+  echo "Building Docker image for the project..."
+  docker build -f "$dockerfile_path" -t "$image_tag" "$context_dir"
+  if [ $? -ne 0 ]; then
     echo "Docker image build failed."
     exit 1
+  fi
+  # Save the current hash to the hash file
+  echo "$current_hash" > "$hash_file"
+}
+
+# Check if the image needs to be rebuilt
+if [ "$current_hash" != "$previous_hash" ]; then
+  build_image
+else
+  echo "Docker image is up to date. No build necessary."
 fi
 
 # Check if a container with the same name is already running
 existing_container=$(docker ps -aq -f name=$project)
 if [ -n "$existing_container" ]; then
-    echo "A container with the name $project already exists. Removing the existing container..."
-    docker rm -f $existing_container
-    if [ $? -ne 0 ]; then
-        echo "Failed to remove the existing container."
-        exit 1
-    fi
+  echo "A container with the name $project already exists. Removing the existing container..."
+  docker rm -f $existing_container
+  if [ $? -ne 0 ]; then
+    echo "Failed to remove the existing container."
+    exit 1
+  fi
 fi
 
 # Run the Docker container
 echo "Running Docker container..."
-docker run -d --name $project -p 80:80 -v $(pwd):/code $project-image
+docker run -d --name $project -p 80:80 -v $(pwd):$workspace_folder $image_tag
 if [ $? -ne 0 ]; then
-    echo "Failed to start the Docker container."
-    exit 1
+  echo "Failed to start the Docker container."
+  exit 1
 fi
 
 # Retrieve the container ID
@@ -40,7 +72,7 @@ fi
 echo "Docker container is running with ID $HEX_CONFIG. Attaching to VS Code..."
 
 # Attach to the running container using VS Code
-code --folder-uri "vscode-remote://attached-container+$HEX_CONFIG/code"
+code --folder-uri "vscode-remote://attached-container+$HEX_CONFIG$workspace_folder"
 if [ $? -ne 0 ]; then
     echo "Failed to attach VS Code to the container."
     exit 1
