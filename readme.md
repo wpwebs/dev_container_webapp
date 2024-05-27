@@ -25,4 +25,3 @@ docker image rm $project-image
 docker run --name $project -it --entrypoint /bin/zsh $project-image
 
 docker exec -it $project /bin/zsh
-
