@@ -1,6 +1,7 @@
 # Secrets in config file 
 config.py
 .ssh/
+.docker_build_hash
 
 # response when initial project on GitHub
 *response.json
