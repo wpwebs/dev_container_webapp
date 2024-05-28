@@ -1,17 +1,17 @@
 #!/bin/bash
 
 # Define the project name
-project_name=FastAPI
+project_name=${1:-FastAPI}
 
 # Function to print usage
 print_usage() {
-  echo "Usage: $0 [environment]"
-  echo "environment: development | dev | production | final"
+  echo "Usage: $0 [Project Name] [Environment]"
+  echo "environment: development | dev | production | prod"
   exit 1
 }
 
 # Set default environment if not provided
-environment=${1:-development}
+environment=${2:-development}
 target=$environment
 
 # Validate the environment argument
@@ -24,8 +24,8 @@ if [[ "$environment" == "dev" ]]; then
   target=development
 fi
 
-if [[ "$environment" == "production" ]]; then
-  target=final
+if [[ "$environment" == "prod" ]]; then
+  target=production
 fi
 
 # Use sed command searches for the "name" key and replaces its value with the project_name
