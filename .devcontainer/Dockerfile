@@ -95,8 +95,8 @@ RUN chmod +x src/entrypoint.sh
 # Use the entrypoint script to start the main application and keep the container running
 ENTRYPOINT ["src/entrypoint.sh"]
 
-# Stage 3: Final stage
-FROM base AS final
+# Stage 3: Production stage
+FROM base AS production
 ARG ENVIRONMENT
 ARG USERNAME
 
